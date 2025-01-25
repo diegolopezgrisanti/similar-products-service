@@ -6,6 +6,7 @@ import com.inditex.similarproducts.domain.exceptions.SimilarProductsFetchingExce
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class GetSimilarProductsUseCase {
 
@@ -18,8 +19,10 @@ public class GetSimilarProductsUseCase {
     public List<Product> getSimilarProducts(String productId) {
         try {
             List<String> similarProductIds = productRepository.getSimilarProductIds(productId);
+
             return similarProductIds.stream()
                     .map(productRepository::getProductDetails)
+                    .flatMap(Optional::stream)
                     .filter(Objects::nonNull)
                     .toList();
         } catch (Exception e) {
