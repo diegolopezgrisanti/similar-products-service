@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: SimilarProductsService
+server:
+  port: 5001
+clients:
+  similar_products:
+    url: http://localhost:3001
