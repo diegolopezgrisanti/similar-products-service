@@ -25,8 +25,8 @@ class GetSimilarProductsUseCaseTest {
         Product product2 = new Product("789", "Blazer", new BigDecimal("29.99"), false);
 
         when(productRepository.getSimilarProductIds(productId)).thenReturn(similarProductIds);
-        when(productRepository.getProductDetails("456")).thenReturn(product1);
-        when(productRepository.getProductDetails("789")).thenReturn(product2);
+        when(productRepository.getProductDetails("456")).thenReturn(Optional.of(product1));
+        when(productRepository.getProductDetails("789")).thenReturn(Optional.of(product2));
 
         // WHEN
         List<Product> result = getSimilarProductsUseCase.getSimilarProducts(productId);
