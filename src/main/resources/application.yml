@@ -2,7 +2,10 @@ spring:
   application:
     name: SimilarProductsService
 server:
-  port: 5001
+  port: 5000
 clients:
   similar_products:
     url: http://localhost:3001
+    retry:
+      max_attempts: 3
+      wait_duration: 2000

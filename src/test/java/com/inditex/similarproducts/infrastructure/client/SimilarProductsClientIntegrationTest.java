@@ -3,7 +3,9 @@ package com.inditex.similarproducts.infrastructure.client;
 import com.github.tomakehurst.wiremock.WireMockServer;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
+import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import com.inditex.similarproducts.domain.Product;
+import io.github.resilience4j.retry.Retry;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,8 +27,10 @@ class SimilarProductsClientIntegrationTest {
     @Autowired
     private RestTemplate restTemplate;
 
-    private SimilarProductsClient similarProductsClient;
+    @Autowired
+    private Retry retry;
 
+    private SimilarProductsClient similarProductsClient;
     private WireMockServer wireMockServer;
 
     @BeforeEach
@@ -37,7 +41,7 @@ class SimilarProductsClientIntegrationTest {
         configureFor("localhost", 3002);
 
         // Initializes the client with the base URL pointing to WireMock server
-        similarProductsClient = new SimilarProductsClient(restTemplate, "http://localhost:3002");
+        similarProductsClient = new SimilarProductsClient(restTemplate, "http://localhost:3002", retry);
     }
 
     @AfterEach
@@ -74,7 +78,7 @@ class SimilarProductsClientIntegrationTest {
                         .willReturn(aResponse()
                                 .withStatus(HttpStatus.OK.value())
                                 .withHeader("Content-Type", "application/json")
-                                .withBody("{\"id\":\"123\", \"name\":\"Product Name\", \"price\":10.99, \"availability\":true}")
+                                .withBody("{\"id\":\"123\", \"name\":\"Product 123\", \"price\":10.99, \"availability\":true}")
                         )
         );
         // WHEN
@@ -84,7 +88,7 @@ class SimilarProductsClientIntegrationTest {
         assertTrue(product.isPresent());
 
         assertEquals("123", product.get().getId());
-        assertEquals("Product Name", product.get().getName());
+        assertEquals("Product 123", product.get().getName());
         assertEquals(new BigDecimal("10.99"), product.get().getPrice());
         assertTrue(product.get().isAvailability());
     }
@@ -122,4 +126,146 @@ class SimilarProductsClientIntegrationTest {
         // THEN
         assertTrue(result.isEmpty());
     }
+
+    @Test
+    void shouldReturnEmptyListAfterThreeFailedAttempts() {
+        // GIVEN
+        wireMockServer.stubFor(
+                WireMock.get(WireMock.urlPathEqualTo("/product/123/similarids"))
+                        .inScenario("Retry Scenario")
+                        .whenScenarioStateIs(Scenario.STARTED)
+                        .willReturn(WireMock.aResponse()
+                                .withStatus(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                        )
+                        .willSetStateTo("Second Attempt")
+        );
+        wireMockServer.stubFor(
+                WireMock.get(WireMock.urlPathEqualTo("/product/123/similarids"))
+                        .inScenario("Retry Scenario")
+                        .whenScenarioStateIs("Second Attempt")
+                        .willReturn(WireMock.aResponse()
+                                .withStatus(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                        )
+                        .willSetStateTo("Third Attempt")
+        );
+        wireMockServer.stubFor(
+                WireMock.get(WireMock.urlPathEqualTo("/product/123/similarids"))
+                        .inScenario("Retry Scenario")
+                        .whenScenarioStateIs("Third Attempt")
+                        .willReturn(WireMock.aResponse()
+                                .withStatus(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                        )
+        );
+
+        // WHEN
+        List<String> similarProductIds = similarProductsClient.getSimilarProductIds("123");
+
+        // THEN
+        assertTrue(similarProductIds.isEmpty());
+        assertEquals(3, similarProductsClient.getAttemptCount(), "Expected exactly 3 attempts");
+    }
+
+
+    @Test
+    void shouldReturnSimilarProductIdsOnThirdAttempt() {
+        // GIVEN
+        wireMockServer.stubFor(
+                WireMock.get(WireMock.urlPathEqualTo("/product/123/similarids"))
+                        .inScenario("Retry Scenario")
+                        .whenScenarioStateIs(Scenario.STARTED)
+                        .willReturn(WireMock.aResponse()
+                                .withStatus(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                        )
+                        .willSetStateTo("Second Attempt")
+        );
+        wireMockServer.stubFor(
+                WireMock.get(WireMock.urlPathEqualTo("/product/123/similarids"))
+                        .inScenario("Retry Scenario")
+                        .whenScenarioStateIs("Second Attempt")
+                        .willReturn(WireMock.aResponse()
+                                .withStatus(HttpStatus.OK.value())
+                                .withHeader("Content-Type", "application/json")
+                                .withBody("[\"456\", \"789\"]")
+                        )
+        );
+
+        // WHEN
+        List<String> similarProductIds = similarProductsClient.getSimilarProductIds("123");
+
+        // THEN
+        assertFalse(similarProductIds.isEmpty());
+        assertEquals(2, similarProductIds.size());
+        assertEquals(2, similarProductsClient.getAttemptCount()); // Verify that exactly two attempts were made
+    }
+
+    @Test
+    void shouldReturnEmptyProductDetailsAfterThreeFailedAttempts() {
+        // GIVEN
+        wireMockServer.stubFor(
+                WireMock.get(WireMock.urlPathEqualTo("/product/123"))
+                        .inScenario("Retry Scenario")
+                        .whenScenarioStateIs(Scenario.STARTED)
+                        .willReturn(WireMock.aResponse()
+                                .withStatus(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                        )
+                        .willSetStateTo("Second Attempt")
+        );
+        wireMockServer.stubFor(
+                WireMock.get(WireMock.urlPathEqualTo("/product/123"))
+                        .inScenario("Retry Scenario")
+                        .whenScenarioStateIs("Second Attempt")
+                        .willReturn(WireMock.aResponse()
+                                .withStatus(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                        )
+                        .willSetStateTo("Third Attempt")
+        );
+        wireMockServer.stubFor(
+                WireMock.get(WireMock.urlPathEqualTo("/product/123"))
+                        .inScenario("Retry Scenario")
+                        .whenScenarioStateIs("Third Attempt")
+                        .willReturn(WireMock.aResponse()
+                                .withStatus(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                        )
+        );
+
+        // WHEN
+        Optional<Product> productDetails = similarProductsClient.getProductDetails("123");
+
+        // THEN
+        assertTrue(productDetails.isEmpty());
+        assertEquals(3, similarProductsClient.getAttemptCount(), "Expected exactly 3 attempts");
+    }
+
+    @Test
+    void shouldReturnProductDetailsOnSecondAttempt() {
+        // GIVEN
+        wireMockServer.stubFor(
+                WireMock.get(WireMock.urlPathEqualTo("/product/123"))
+                        .inScenario("Retry Scenario")
+                        .whenScenarioStateIs(Scenario.STARTED)
+                        .willReturn(WireMock.aResponse()
+                                .withStatus(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                        )
+                        .willSetStateTo("Second Attempt")
+        );
+        wireMockServer.stubFor(
+                WireMock.get(WireMock.urlPathEqualTo("/product/123"))
+                        .inScenario("Retry Scenario")
+                        .whenScenarioStateIs("Second Attempt")
+                        .willReturn(WireMock.aResponse()
+                                .withStatus(HttpStatus.OK.value())
+                                .withHeader("Content-Type", "application/json")
+                                .withBody("{ \"id\": \"123\", \"name\": \"Product 123\" }")
+                        )
+        );
+
+        // WHEN
+        Optional<Product> productDetails = similarProductsClient.getProductDetails("123");
+
+        // THEN
+        assertTrue(productDetails.isPresent());
+        assertEquals("Product 123", productDetails.get().getName());
+        assertEquals(2, similarProductsClient.getAttemptCount()); // Verify that exactly two attempts were made
+    }
+
 }
