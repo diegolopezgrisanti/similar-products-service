@@ -94,9 +94,24 @@ In case of errors, the API will return a JSON object with an error message.
   "message": "No similar products found for productId: 1234"
 }
 ```
+### Retry Logic
+
+The `SimilarProductsClient` implements a retry mechanism using **Resilience4j** to handle failed requests. The system will attempt to call the external service up to **3 times** (this can be configured in the `application.yml` file). If the request fails due to certain exceptions (like `IOException` or `HttpServerErrorException`), the system will automatically retry up to the configured maximum attempts.
+
+#### Retry Behavior
+1. **First Attempt**: The request is made to the service.
+2. **Second Attempt**: If the first attempt fails (with the specified retryable exceptions), a second attempt is made.
+3. **Third Attempt**: If the second attempt also fails, a third and final attempt is made.
+
+If all attempts fail, the system will return an empty result, ensuring no infinite retries.
+
+#### Configurable Retry Parameters
+- **Max Attempts**: The maximum number of retry attempts (default is 3).
+- **Wait Duration**: The time to wait between each retry attempt (default is 2 seconds).
+
 
 ### Swagger API Documentation
-The API is documented using Springdoc OpenAPI. Once the application is running, you can access the Swagger UI to interact with the endpoints.
+The API is documented using SpringDoc OpenAPI. Once the application is running, you can access the Swagger UI to interact with the endpoints.
 
 #### Access Swagger UI:
 - URL: [http://localhost:5000/swagger-ui/index.html](http://localhost:5000/swagger-ui/index.html)
@@ -115,6 +130,7 @@ The API is documented using Springdoc OpenAPI. Once the application is running, 
 - **JUnit 5**: A popular testing framework used for writing tests in Java.
 - **Mockito Core**: A framework used for mocking objects in tests.
 - **WireMock**: Provides a standalone mock server for simulating external HTTP services during tests.
+- **Resilience4j**: A library used for implementing retries, circuit breakers, and rate limiters in microservices and distributed systems.
 
 ## Additional Documentation
 
@@ -124,3 +140,4 @@ For more information, refer to the following resources:
 - [SpringDoc OpenAPI Documentation](https://springdoc.org/)
 - [WireMock Documentation](https://wiremock.org/docs/)
 - [JUnit Documentation](https://junit.org/junit5/docs/current/user-guide/)
+- [Resilience4j Retry Documentation](https://resilience4j.readme.io/docs/retry)
