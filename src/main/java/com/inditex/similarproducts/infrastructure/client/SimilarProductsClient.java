@@ -2,7 +2,8 @@ package com.inditex.similarproducts.infrastructure.client;
 
 import com.inditex.similarproducts.domain.Product;
 import com.inditex.similarproducts.domain.ProductRepository;
-import org.springframework.web.client.HttpClientErrorException;
+import io.github.resilience4j.retry.Retry;
+import lombok.Getter;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -14,10 +15,16 @@ public class SimilarProductsClient implements ProductRepository {
 
     private final RestTemplate restTemplate;
     private final String similarProductsUrl;
+    private final Retry retry;
 
-    public SimilarProductsClient(RestTemplate restTemplate, String similarProductsUrl) {
+    @Getter
+    private int attemptCount;
+
+    public SimilarProductsClient(RestTemplate restTemplate, String similarProductsUrl, Retry retry) {
         this.restTemplate = restTemplate;
         this.similarProductsUrl = similarProductsUrl;
+        this.retry = retry;
+        this.attemptCount = 0;
     }
 
     @Override
@@ -29,11 +36,12 @@ public class SimilarProductsClient implements ProductRepository {
                 .toUriString();
 
         try {
-            String[] similarIds = restTemplate.getForObject(similarIdsUrl, String[].class);
-
-            return similarIds != null ? Arrays.asList(similarIds) : List.of();
-        } catch (HttpClientErrorException.NotFound e) {
-
+            return Retry.decorateCheckedSupplier(retry, () -> {
+                attemptCount++;
+                String[] similarIds = restTemplate.getForObject(similarIdsUrl, String[].class);
+                return similarIds != null ? Arrays.asList(similarIds) : List.<String>of();
+            }).get();
+        } catch (Throwable throwable) {
             return List.of();
         }
     }
@@ -47,12 +55,13 @@ public class SimilarProductsClient implements ProductRepository {
                 .toUriString();
 
         try {
-
-            return Optional.ofNullable(restTemplate.getForObject(productDetailUrl, Product.class));
-        } catch (HttpClientErrorException.NotFound e) {
-
-        return Optional.empty();
+            return Retry.decorateCheckedSupplier(retry, () -> {
+                attemptCount++;
+                Product product = restTemplate.getForObject(productDetailUrl, Product.class);
+                return Optional.ofNullable(product);
+            }).get();
+        } catch (Throwable e) {
+            return Optional.empty();
         }
     }
-
 }
