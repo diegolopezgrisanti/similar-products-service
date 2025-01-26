@@ -94,6 +94,7 @@ In case of errors, the API will return a JSON object with an error message.
   "message": "No similar products found for productId: 1234"
 }
 ```
+
 ### Retry Logic
 
 The `SimilarProductsClient` implements a retry mechanism using **Resilience4j** to handle failed requests. The system will attempt to call the external service up to **3 times** (this can be configured in the `application.yml` file). If the request fails due to certain exceptions (like `IOException` or `HttpServerErrorException`), the system will automatically retry up to the configured maximum attempts.
