@@ -1,20 +1,19 @@
 package com.inditex.similarproducts.application.getsimilarproducts;
 
-import com.inditex.similarproducts.domain.Product;
+import com.inditex.similarproducts.domain.models.Product;
 import com.inditex.similarproducts.domain.ProductRepository;
 import com.inditex.similarproducts.domain.exceptions.SimilarProductsFetchingException;
+import com.inditex.similarproducts.domain.usecases.GetSimilarProductsUseCase;
+import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-public class GetSimilarProductsUseCase {
+@RequiredArgsConstructor
+public class GetSimilarProductsUseCaseImpl implements GetSimilarProductsUseCase {
 
     private final ProductRepository productRepository;
-
-    public GetSimilarProductsUseCase(ProductRepository productRepository) {
-        this.productRepository = productRepository;
-    }
 
     public List<Product> getSimilarProducts(String productId) {
         try {
