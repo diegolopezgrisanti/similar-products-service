@@ -1,7 +1,7 @@
 package com.inditex.similarproducts.infrastructure.entrypoint.rest;
 
-import com.inditex.similarproducts.application.getsimilarproducts.GetSimilarProductsUseCase;
-import com.inditex.similarproducts.domain.Product;
+import com.inditex.similarproducts.domain.models.Product;
+import com.inditex.similarproducts.domain.usecases.GetSimilarProductsUseCase;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
