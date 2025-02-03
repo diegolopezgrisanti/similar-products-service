@@ -1,8 +1,9 @@
 package com.inditex.similarproducts.application.getsimilarproducts;
 
-import com.inditex.similarproducts.domain.Product;
+import com.inditex.similarproducts.domain.models.Product;
 import com.inditex.similarproducts.domain.ProductRepository;
 import com.inditex.similarproducts.domain.exceptions.SimilarProductsFetchingException;
+import com.inditex.similarproducts.domain.usecases.GetSimilarProductsUseCase;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -11,10 +12,10 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-class GetSimilarProductsUseCaseTest {
+class GetSimilarProductsUseCaseImplTest {
 
     private final ProductRepository productRepository = mock(ProductRepository.class);
-    private final GetSimilarProductsUseCase getSimilarProductsUseCase = new GetSimilarProductsUseCase(productRepository);
+    private final GetSimilarProductsUseCase getSimilarProductsUseCase = new GetSimilarProductsUseCaseImpl(productRepository);
 
     @Test
     void shouldReturnSimilarProductsWhenFetchIsSuccessful() {

@@ -4,7 +4,7 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
-import com.inditex.similarproducts.domain.Product;
+import com.inditex.similarproducts.domain.models.Product;
 import io.github.resilience4j.retry.Retry;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

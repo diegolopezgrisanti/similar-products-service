@@ -1,9 +1,10 @@
 package com.inditex.similarproducts.infrastructure.client;
 
-import com.inditex.similarproducts.domain.Product;
+import com.inditex.similarproducts.domain.models.Product;
 import com.inditex.similarproducts.domain.ProductRepository;
 import io.github.resilience4j.retry.Retry;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -11,6 +12,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
+@RequiredArgsConstructor
 public class SimilarProductsClient implements ProductRepository {
 
     private final RestTemplate restTemplate;
@@ -18,14 +20,7 @@ public class SimilarProductsClient implements ProductRepository {
     private final Retry retry;
 
     @Getter
-    private int attemptCount;
-
-    public SimilarProductsClient(RestTemplate restTemplate, String similarProductsUrl, Retry retry) {
-        this.restTemplate = restTemplate;
-        this.similarProductsUrl = similarProductsUrl;
-        this.retry = retry;
-        this.attemptCount = 0;
-    }
+    private int attemptCount = 0;
 
     @Override
     public List<String> getSimilarProductIds(String productId) {
