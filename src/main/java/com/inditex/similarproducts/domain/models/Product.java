@@ -1,4 +1,4 @@
-package com.inditex.similarproducts.domain;
+package com.inditex.similarproducts.domain.models;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
