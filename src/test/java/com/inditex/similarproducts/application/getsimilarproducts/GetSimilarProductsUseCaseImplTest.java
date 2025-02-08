@@ -1,7 +1,8 @@
 package com.inditex.similarproducts.application.getsimilarproducts;
 
+import com.inditex.similarproducts.domain.exceptions.SimilarProductsNotFoundException;
 import com.inditex.similarproducts.domain.models.Product;
-import com.inditex.similarproducts.domain.ProductRepository;
+import com.inditex.similarproducts.domain.client.SimilarProductsClient;
 import com.inditex.similarproducts.domain.exceptions.SimilarProductsFetchingException;
 import com.inditex.similarproducts.domain.usecases.GetSimilarProductsUseCase;
 import org.junit.jupiter.api.Test;
@@ -14,8 +15,8 @@ import static org.mockito.Mockito.*;
 
 class GetSimilarProductsUseCaseImplTest {
 
-    private final ProductRepository productRepository = mock(ProductRepository.class);
-    private final GetSimilarProductsUseCase getSimilarProductsUseCase = new GetSimilarProductsUseCaseImpl(productRepository);
+    private final SimilarProductsClient similarProductsClient = mock(SimilarProductsClient.class);
+    private final GetSimilarProductsUseCase getSimilarProductsUseCase = new GetSimilarProductsUseCaseImpl(similarProductsClient);
 
     @Test
     void shouldReturnSimilarProductsWhenFetchIsSuccessful() {
@@ -25,9 +26,9 @@ class GetSimilarProductsUseCaseImplTest {
         Product product1 = new Product("456", "Dress", new BigDecimal("19.99"), true);
         Product product2 = new Product("789", "Blazer", new BigDecimal("29.99"), false);
 
-        when(productRepository.getSimilarProductIds(productId)).thenReturn(similarProductIds);
-        when(productRepository.getProductDetails("456")).thenReturn(Optional.of(product1));
-        when(productRepository.getProductDetails("789")).thenReturn(Optional.of(product2));
+        when(similarProductsClient.getSimilarProductIds(productId)).thenReturn(similarProductIds);
+        when(similarProductsClient.getProductDetails("456")).thenReturn(Optional.of(product1));
+        when(similarProductsClient.getProductDetails("789")).thenReturn(Optional.of(product2));
 
         // WHEN
         List<Product> result = getSimilarProductsUseCase.getSimilarProducts(productId);
@@ -37,41 +38,41 @@ class GetSimilarProductsUseCaseImplTest {
         assertEquals("Dress", result.get(0).getName());
         assertEquals("Blazer", result.get(1).getName());
 
-        verify(productRepository).getSimilarProductIds(productId);
-        verify(productRepository).getProductDetails("456");
-        verify(productRepository).getProductDetails("789");
-    }
-
-    @Test
-    void shouldReturnEmptyListWhenNoSimilarProductsAreFound() {
-        // GIVEN
-        String productId = "123";
-        when(productRepository.getSimilarProductIds(productId)).thenReturn(Collections.emptyList());
-
-        // WHEN
-        List<Product> result = getSimilarProductsUseCase.getSimilarProducts(productId);
-
-        // THEN
-        assertTrue(result.isEmpty());
-
-        verify(productRepository).getSimilarProductIds(productId);
-        verify(productRepository, never()).getProductDetails(anyString());
+        verify(similarProductsClient).getSimilarProductIds(productId);
+        verify(similarProductsClient).getProductDetails("456");
+        verify(similarProductsClient).getProductDetails("789");
     }
 
     @Test
     void shouldThrowExceptionWhenFetchingSimilarProductsFails() {
         // GIVEN
         String productId = "123";
-        when(productRepository.getSimilarProductIds(productId)).thenThrow(new RuntimeException("Error database"));
+        when(similarProductsClient.getSimilarProductIds(productId)).thenThrow(new RuntimeException("Error database"));
 
         // WHEN & THEN
         SimilarProductsFetchingException exception = assertThrows(SimilarProductsFetchingException.class, () ->
-                getSimilarProductsUseCase.getSimilarProducts(productId));
+                getSimilarProductsUseCase.getSimilarProducts(productId)
+        );
 
         assertEquals("Failed to fetch similar products for productId: 123", exception.getMessage());
+        verify(similarProductsClient, times(1)).getSimilarProductIds(productId);
+        verify(similarProductsClient, never()).getProductDetails(anyString());
+    }
 
-        verify(productRepository).getSimilarProductIds(productId);
-        verify(productRepository, never()).getProductDetails(anyString());
+    @Test
+    void shouldReturnNotFoundWhenNoSimilarProductsAreFound() {
+        // GIVEN
+        String productId = "123";
+        when(similarProductsClient.getSimilarProductIds(productId)).thenReturn(Collections.emptyList());
+
+        // WHEN & THEN
+        SimilarProductsNotFoundException exception = assertThrows(SimilarProductsNotFoundException.class, () ->
+                getSimilarProductsUseCase.getSimilarProducts(productId)
+        );
+
+        assertEquals("No similar products found for productId: 123", exception.getMessage());
+        verify(similarProductsClient, times(1)).getSimilarProductIds(productId);
+        verify(similarProductsClient, never()).getProductDetails(anyString());
     }
 
 }
