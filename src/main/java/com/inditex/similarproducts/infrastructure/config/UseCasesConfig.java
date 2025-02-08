@@ -1,7 +1,7 @@
 package com.inditex.similarproducts.infrastructure.config;
 
 import com.inditex.similarproducts.application.getsimilarproducts.GetSimilarProductsUseCaseImpl;
-import com.inditex.similarproducts.domain.ProductRepository;
+import com.inditex.similarproducts.domain.client.SimilarProductsClient;
 import com.inditex.similarproducts.domain.usecases.GetSimilarProductsUseCase;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Configuration;
 public class UseCasesConfig {
 
     @Bean
-    public GetSimilarProductsUseCase getSimilarProductsUseCase(ProductRepository productRepository) {
-        return new GetSimilarProductsUseCaseImpl(productRepository);
+    public GetSimilarProductsUseCase getSimilarProductsUseCase(SimilarProductsClient similarProductsClient) {
+        return new GetSimilarProductsUseCaseImpl(similarProductsClient);
     }
 }
