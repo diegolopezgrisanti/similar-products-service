@@ -1,6 +1,7 @@
 package com.inditex.similarproducts.infrastructure.config.client;
 
-import com.inditex.similarproducts.infrastructure.client.SimilarProductsClient;
+import com.inditex.similarproducts.domain.client.SimilarProductsClient;
+import com.inditex.similarproducts.infrastructure.client.SimilarProductsClientImpl;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
 import org.springframework.beans.factory.annotation.Value;
@@ -42,8 +43,8 @@ public class SimilarProductsClientConfig {
     }
 
     @Bean
-    public SimilarProductsClient similarProductsService(
+    public SimilarProductsClient similarProductsClient(
             RestTemplate restTemplate, Retry retry) {
-        return new SimilarProductsClient(restTemplate, similarProductsUrl, retry);
+        return new SimilarProductsClientImpl(restTemplate, similarProductsUrl, retry);
     }
 }

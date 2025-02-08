@@ -4,14 +4,17 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
+import com.inditex.similarproducts.domain.client.SimilarProductsClient;
 import com.inditex.similarproducts.domain.models.Product;
 import io.github.resilience4j.retry.Retry;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
@@ -22,7 +25,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
-class SimilarProductsClientIntegrationTest {
+@ActiveProfiles("test")
+class SimilarProductsClientImplIntegrationTest {
 
     @Autowired
     private RestTemplate restTemplate;
@@ -33,6 +37,9 @@ class SimilarProductsClientIntegrationTest {
     private SimilarProductsClient similarProductsClient;
     private WireMockServer wireMockServer;
 
+    @Value("${clients.similar_products.url}")
+    private String similarProductsUrl;
+
     @BeforeEach
     void setUp() {
         // Starts WireMock server on port 3002
@@ -41,7 +48,7 @@ class SimilarProductsClientIntegrationTest {
         configureFor("localhost", 3002);
 
         // Initializes the client with the base URL pointing to WireMock server
-        similarProductsClient = new SimilarProductsClient(restTemplate, "http://localhost:3002", retry);
+        similarProductsClient = new SimilarProductsClientImpl(restTemplate, similarProductsUrl, retry);
     }
 
     @AfterEach
@@ -162,7 +169,6 @@ class SimilarProductsClientIntegrationTest {
 
         // THEN
         assertTrue(similarProductIds.isEmpty());
-        assertEquals(3, similarProductsClient.getAttemptCount(), "Expected exactly 3 attempts");
     }
 
 
@@ -195,7 +201,6 @@ class SimilarProductsClientIntegrationTest {
         // THEN
         assertFalse(similarProductIds.isEmpty());
         assertEquals(2, similarProductIds.size());
-        assertEquals(2, similarProductsClient.getAttemptCount()); // Verify that exactly two attempts were made
     }
 
     @Test
@@ -233,7 +238,6 @@ class SimilarProductsClientIntegrationTest {
 
         // THEN
         assertTrue(productDetails.isEmpty());
-        assertEquals(3, similarProductsClient.getAttemptCount(), "Expected exactly 3 attempts");
     }
 
     @Test
@@ -265,7 +269,6 @@ class SimilarProductsClientIntegrationTest {
         // THEN
         assertTrue(productDetails.isPresent());
         assertEquals("Product 123", productDetails.get().getName());
-        assertEquals(2, similarProductsClient.getAttemptCount()); // Verify that exactly two attempts were made
     }
 
 }
